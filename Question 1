@@ -1,1 +1,413 @@
+*** PostFix **** 
+//***********************************************************
+// Author: D.S. Malik
+//
+// Program: Postfix Calculator  
+// This program evaluates postfix expressions.
+//***********************************************************
+  
+#include <iostream>  
+#include <iomanip>
+#include <fstream> //library that will allow for inputing and outputting into a file 
+#include "mystack.h" // use the stack created in this file 
+ 
+using namespace std; 
+
+// these function prototypes will help with the construction with the calculator
+
+// function that will take in four parameters. Takes a input, output, double stack type, character type, and Bool
+void evaluateExpression(ifstream& inpF, ofstream& outF,stackType<double>& stack, char& ch, bool& isExpOk);
+
+//function will take in four parameters. Takes a output, takes a double stack type, character type, and bool type
+void evaluateOpr(ofstream& out, stackType<double>& stack, char& ch, bool& isExpOk);
+
+// function will take in three parameters. Takes a input type, and output type and a character type
+void discardExp(ifstream& in, ofstream& out, char& ch);
+
+// function that will print the result. Takes in three parameters. Takes in output, takes a double stack type, and bool type. 
+void printResult(ofstream& outF, stackType<double>& stack, bool isExpOk);
+
+int main()
+{
+    bool expressionOk; // create the bool type
+    char ch; // create the character type 
+    stackType<double> stack(100); // create a stack of 100 
+    ifstream infile; // create the input type 
+    ofstream outfile; // create the output type 
+ 
+    infile.open("RpnData.txt"); // open the input file called "RpnData.txt"
+
+    if (!infile) // if file does not open
+    {
+        cout << "Cannot open the input file. "  << "Program terminates!" << endl; // if the file does not open, program will close
+        return 1; // file not open, program close 
+    }
+     
+    outfile.open("RpnOutput.txt"); // open the output file "RpnOutput.txt" 
+
+    // this will set how the output will be formatted in the output file 
+    outfile << fixed << showpoint; // set how the fix deciaml output will look like 
+    outfile << setprecision(2); // will display two decimal	spots
+
+    infile >> ch; // read the characters into the input file 
+    while (infile) // while the input file is open 
+    {
+        stack.initializeStack(); // use the stack 
+        expressionOk = true; // expressionOk is true
+        outfile << ch; // output the chracters into the output file 
+
+        evaluateExpression(infile, outfile, stack, ch, expressionOk); // evaluateExpression will take in four paratermeters to solve the ex
+        printResult(outfile, stack, expressionOk); // prints the result to the output file
+        infile >> ch; //begin processing the next expression
+    } //end while 
+
+    infile.close(); // close the input file
+    outfile.close(); // close the output file
+
+    return 0;
+
+} //end main
+
+// function for evaluateExpression
+void evaluateExpression(ifstream& inpF, ofstream& outF, stackType<double>& stack,char& ch, bool& isExpOk) {
+    double num; // creating a num variable 
+
+    while (ch != '=') // continue the while loop until it reaches a = 
+    {
+        switch (ch) // switch statments for the chracters 
+        {
+        case '#': // if there is # sign then this case will run 
+            inpF >> num; // get input from input file, insert the input to the num variable
+            outF << num << " "; // output the num into the output file 
+            if (!stack.isFullStack()) // if the stack is not empty
+                stack.push(num); // add the num into the stack 
+            else // if the stack is full, terminate the program 
+            {
+                cout << "Stack overflow. "
+                     << "Program terminates!" << endl;
+                exit(0);  //terminate the program
+            }
+
+            break;
+        default: // will run if there is no case match 
+            evaluateOpr(outF, stack, ch, isExpOk); // evaulate the expression
+        }//end switch
+
+        if (isExpOk) //if no error
+        {
+            inpF >> ch; // read in the characters from the input file
+            outF << ch; // output the chracters into the output file 
+
+            if (ch != '#') // if the character is not #
+                outF << " "; // output the charater into the output file
+        }
+        else
+            discardExp(inpF, outF, ch); // if the expression is not ok, then discard the expression 
+    } //end while (!= '=')
+} //end evaluateExpression
+
+//function to evaluate the opressions 
+void evaluateOpr(ofstream& out, stackType<double>& stack, char& ch, bool& isExpOk)
+{
+    double op1, op2; // variables to hold the operands
+
+    if (stack.isEmptyStack()) // if the stack has nothing
+    {
+        out << " (Not enough operands)"; // output to the output file that there is nothing in the stack 
+        isExpOk = false; // expression is not ok, make the bool false 
+    }
+    else
+    {
+        op2 = stack.top(); // op2 will be the value of the top of the stack 
+        stack.pop();// remove the top (last one in, first one out)
+
+        if (stack.isEmptyStack()) // if the stack holds nothing 
+        {
+            out << " (Not enough operands)"; // output this to the output file 
+            isExpOk = false; // bool will be false
+        }
+        else
+        {
+            op1 = stack.top(); // op1 will take the value of the top of the stack 
+            stack.pop(); // remove the value of the top of the stack 
+
+            switch (ch) // switch for the characters 
+            {
+            case '+': // if there is a + 
+                stack.push(op1 + op2); // add the two operands, push the result into the stack 
+                break; // break out the switch statment
+            case '-': // if there is a -
+                stack.push(op1 - op2); // subtract the two operands, push the result into the stack 
+                break; // break out the switch statment 
+            case '*': // if there is a * 
+                stack.push(op1 * op2); // multiply the two operands, push the result into the stack 
+                break; // leave the switch statment
+            case '/': // if there is / 
+                if (op2 != 0) // make sure op2 is not zero, if not 
+                    stack.push(op1 / op2); // divide the two operands, push the result into the stack
+                else
+                {
+                    out << " (Division by 0)"; // if op2 is a zero, then do not divided the operands
+                    isExpOk = false; // set the bool to false
+                }
+                break; // leave the switch statement 
+            default: // will happen if none of the cases active 
+                out << " (Illegal operator)"; // output that there is an a Illegal operator
+                isExpOk = false; // make bool false 
+            }//end switch
+        } //end else
+    } //end else
+} //end evaluateOpr
+
+// function for discardExp
+void discardExp(ifstream& in, ofstream& out, char& ch)
+{
+    while (ch != '=') // while the character is not = 
+    {
+        in.get(ch); // get the character from the input file 
+        out << ch; // output the character into the file 
+    }
+} //end discardExp
+
+// function that will print out the result
+void printResult(ofstream& outF, stackType<double>& stack, bool isExpOk)
+{
+    double result; //variable type double 
+
+    if (isExpOk) //if no error, print the result
+    {
+        if (!stack.isEmptyStack()) // if the stack is not empty
+        {
+            result = stack.top(); // result will get the value of the top of the stack 
+            stack.pop(); // remove the value of the stack 
+
+            if (stack.isEmptyStack()) // if the stack is empty
+                outF << result << endl; // put the result into the output 
+            else // if not 
+                outF << " (Error: Too many operands)" << endl; // print this line into the output file
+        } //end if
+        else // if the stack is empty 
+            outF << " (Error in the expression)" << endl;
+    }
+    else // the expression is not ok, do not proceeed 
+        outF << " (Error in the expression)" << endl; // print this line in the output file 
+
+    outF << "_________________________________" // print this to the output file
+         << endl << endl; 
+} //end printResult
+
+*** StackLinkedList ***
+
+//Header File: linkedStack.h 
+// TYPE COMMENTS FOR EVERYTHING
+#ifndef H_StackType
+#define H_StackType
+ 
+#include <iostream>
+#include <cassert> 
+ 
+#include "stackADT.h"
+
+using namespace std;
+
+
+template <class Type> // creating a templete for the nodes of the linked list
+struct nodeType
+{
+    Type info; // the info for the linked list 
+    nodeType<Type> *link; // the link for the nodes 
+};
+
+template <class Type> // template for the stack linked list 
+class linkedStackType: public stackADT<Type> // class for the stack linked list, it can be any type
+{
+public:
+    const linkedStackType<Type>& operator=
+                              (const linkedStackType<Type>&); // assignment operator of the linked list  
+
+
+    bool isEmptyStack() const; // bool function to determine if the stack is empty 
+
+
+    bool isFullStack() const; // bool function to determine if the stack is full
+
+
+    void initializeStack(); // class function to start the stack 
+
+
+    void push(const Type& newItem); // function to add to the stack 
+
+
+    Type top() const; // fucntion to get the top of the stack 
+
+
+    void pop(); // fucntion to remove the top of the stack 
+
+
+    linkedStackType(); // default constructor for the class 
+
+
+    linkedStackType(const linkedStackType<Type>& otherStack); // copy constructor for the linked list 
+  
+
+    ~linkedStackType(); // the destructor for the class 
+
+private:
+    nodeType<Type> *stackTop; //pointer to the stack
+
+    void copyStack(const linkedStackType<Type>& otherStack); // function to copy the stack to another stack
+
+};
+
+
+    
+template <class Type> 
+linkedStackType<Type>::linkedStackType() // default constructor
+{
+    stackTop = nullptr; // the top of the stack will begin at a nullptr 
+}
+
+template <class Type>
+bool linkedStackType<Type>::isEmptyStack() const // function to determine if stack is empty
+{
+    return(stackTop == nullptr); // if top of the stack is null, then it is empty. Nothing is in the stack
+} 
+
+template <class Type>
+bool linkedStackType<Type>:: isFullStack() const // determine if stack is full 
+{
+    return false; // function will always return false 
+} 
+
+template <class Type>
+void linkedStackType<Type>:: initializeStack() // start the stack 
+{
+    nodeType<Type> *temp; // create temp node 
+
+    while (stackTop != nullptr)  // while the top is not null 
+    {
+        temp = stackTop; // temp points to the stackTop 
+                           
+        stackTop = stackTop->link; // stackTop points to the next link 
+                                   
+        delete temp; // delete the temp 
+    }
+} 
+
+template <class Type>
+void linkedStackType<Type>::push(const Type& newElement) // function to push element into the stack 
+{
+    nodeType<Type> *newNode; // creating a newNode 
+
+    newNode = new nodeType<Type>; 
+
+    newNode->info = newElement; // the newNode gets the element to add to the stack 
+    newNode->link = stackTop; // the newNode points to the top of the stack 
+    stackTop = newNode; // stackTop gets the newNode 
+                             
+} //end push
+
+
+template <class Type>
+Type linkedStackType<Type>::top() const // function to get the info of the top of the stack 
+{
+    assert(stackTop != nullptr); // makes sure that stackTop is not pointing to the nullptr (makes sure the stack is not empty )
+                              
+    return stackTop->info; // return the info of the top of the stack 
+}//end top
+
+template <class Type>
+void linkedStackType<Type>::pop() // function to remove the top of the stack 
+{
+    nodeType<Type> *temp; // creating a temp node 
+
+    if (stackTop != nullptr) // if the stackTop is not null 
+    {
+        temp = stackTop; // temp gets the info of the stackTop
+
+        stackTop = stackTop->link; // stackTop points to the next node in the linkedList stack
+                                    
+        delete temp; // delete the temp, which has the element you want to delete 
+    }
+    else
+        cout << "Cannot remove from an empty stack." << endl; // if the stack is empty print this line 
+}//end pop
+
+template <class Type> 
+void linkedStackType<Type>::copyStack
+                     (const linkedStackType<Type>& otherStack) // function to copy the stackv
+{
+    nodeType<Type> *newNode, *current, *last; // create the three nodes 
+
+    if (stackTop != nullptr) // if the stack is empty 
+        initializeStack(); // create the stack 
+
+    if (otherStack.stackTop == nullptr) // if the top of the other stack is nullptr
+        stackTop = nullptr; // stackTop will also point to the nullptr 
+    else
+    {
+        current = otherStack.stackTop; // current points to the top of the otherStack
+
+          
+        stackTop = new nodeType<Type>; // create the stackTop 
+
+        stackTop->info = current->info; // stackTop gets the info of the current stack
+        stackTop->link = nullptr; // stackTop points to the nullptr 
+                               
+        last = stackTop; // last node points to the stackTop 
+        current = current->link; // current points to the next link  
+
+           
+        while (current != nullptr) // while current is not empty 
+        {
+            newNode = new nodeType<Type>; 
+
+            newNode->info = current->info; // newNode gets the info of the current node 
+            newNode->link = nullptr; // newNode points to the nullptr 
+            last->link = newNode; // lastNode points to the newNode 
+            last = newNode; // last node gets the address of newNode
+            current = current->link; // current points to the next link 
+        }
+    }
+} 
+
+ 
+template <class Type>   
+linkedStackType<Type>::linkedStackType(
+                      const linkedStackType<Type>& otherStack) // copy constructor for linkedStackType
+{
+    stackTop = nullptr; // stack top points to the nullptr 
+    copyStack(otherStack); // call the copyStack
+}
+
+  
+template <class Type> 
+linkedStackType<Type>::~linkedStackType() // destructor for the linkedStackType
+{
+    initializeStack(); // call the initializeStack 
+}
+    
+template <class Type>   
+const linkedStackType<Type>& linkedStackType<Type>::operator=
+    			  (const linkedStackType<Type>& otherStack) // assignment operator for the linkedStackType
+{ 
+    if (this != &otherStack)  // makes sure you are not trying copy the stack to the same stack (this cannnot happen A = A )
+        copyStack(otherStack); // call the copyStack
+
+    return *this; // return the otherStack
+}
+
+#endif
+void linkedListType<Type>::print() const
+{
+    nodeType<Type> *current; //pointer to traverse the list
+
+    current = first;    //set current so that it points to 
+                        //the first node
+    while (current != nullptr) //while more data to print
+    {
+        cout << current->info << " ";
+        current = current->link;
+    }
+}//end print
 
