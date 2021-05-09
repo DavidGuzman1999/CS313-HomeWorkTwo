@@ -1,1 +1,106 @@
+#include <iostream>
+#include <cassert> 
+#include <cstring> 
 
+using namespace std;
+
+
+class node { // class to make the linkedList work 
+public:
+  char data; // the data that will be inside the linkedlist 
+  node* link; // the links connecting the nodes 
+};
+
+class StackLinkedList { // the linked list class 
+private:
+node* stackTop; //the nodes for the class 
+
+public: 
+StackLinkedList () { // the default constructor  
+  stackTop = nullptr; // the top will point to the nullptr 
+}
+bool isEmptyStack () const { // function to determine if the stack is empty 
+  return (stackTop == nullptr); // if the top is nullptr, then it is empty 
+}
+bool isFullStack () const { // function to determine if the stack is full 
+  return false;
+}
+void initializeStack () { // function to begin the stack 
+  node* temp; // create a temp node 
+
+  while ( stackTop != nullptr) { // if the stackTop is not null 
+    temp = stackTop;  // temp will equal stackTop
+
+    stackTop = stackTop->link; // stackTop will point to the next link 
+
+    delete temp; // get rid of the temp 
+  }
+}
+void push (const char& newElement) { // push to add elements to the stack
+  node* newNode; // node to be added into the stack 
+
+  newNode = new node; 
+
+  newNode-> data = newElement; //newNode will get the element to be added to the stack 
+
+  newNode->link = stackTop; // newNode points to the stackTop 
+
+  stackTop = newNode; // stackTop gets the newNode 
+}
+void pop() { // function to remove elements 
+  node* temp; // temp node 
+
+  if (stackTop != nullptr) { // keep going if the stackTOp is not null 
+    temp = stackTop; // temp gets the info of the stackTop
+
+    stackTop = stackTop->link; // stackTop moves to the next link
+
+    delete temp; // get rid of the temp nodes that contains the elements we want to delete 
+  }
+  else // if stacktop is emepty, then print this statement 
+  cout << "cannot remove from an empty stack." << endl; 
+}
+void print ()const { // function to print the elements of the stack 
+
+  node* temp; // temp node 
+  if ( stackTop == NULL) { // if the stackTop is null, then stack empty 
+    cout << "No Elements" << endl; 
+  }
+  else 
+    temp = stackTop; // temp gets the info of the stackTop 
+    while (temp != NULL) { // if temp is not null
+      cout << temp->data << " "; // print the data of the temp 
+      temp = temp->link; // temp will point to the next link 
+    }
+}
+
+~StackLinkedList () { // the destructor of the class 
+  initializeStack ();
+}
+
+};
+int main() {
+  string word = "When Chuck Norris falls in water, Chuck Norris doesn't get wet. Water gets Chuck Norris. "; // words to be added into the stack
+
+
+
+  StackLinkedList stackOne; // initialize the stack 
+  stackOne.initializeStack(); // start the stack 
+
+  cout << "String not in reverse" << endl; 
+
+  for (int i= 0; i < word.size();i++){ // print the words 
+    cout << word[i]; 
+  }
+  cout << endl; 
+  cout << "String in reverse" << endl; 
+
+
+  for ( int i=0; i < word.size(); i++) { // add the words into the stack 
+    stackOne.push(word[i]);
+  }
+  
+  stackOne.print (); // print the elements of the stack 
+
+
+}
